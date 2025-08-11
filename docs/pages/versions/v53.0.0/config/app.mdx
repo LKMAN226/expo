@@ -1,4 +1,78 @@
----
+import React, {useEffect, useState} from "react";
+import { SafeAreaView, View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
+import axios from "axios";
+
+/**
+ * IMPORTANT:
+ * Remplace BACKEND_URL par l'URL publique de ton backend une fois déployé.
+ * Pour le test immédiat (avant déploiement), tu peux laisser BACKEND_URL vide
+ * et l'app affichera un message d'erreur lisible.
+ */
+const BACKEND_URL = "https://YOUR_BACKEND_URL"; // <-- change this later
+
+export default function App() {
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  useEffect(()=>{
+    fetchMatches();
+  }, []);
+
+  const fetchMatches = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      // Exemple : on récupère les matchs de la Liga (utiliser le endpoint /matches dans ton backend)
+      const res = await axios.get(`${BACKEND_URL}/matches`); 
+      // si ton backend renvoie { response: [...] } adapte ci-dessous
+      const data = res.data.response || res.data || [];
+      setMatches(Array.isArray(data) ? data : []);
+    } catch(e) {
+      console.warn("Erreur fetchMatches:", e.message);
+      setErrorMsg("Impossible de joindre le backend. Vérifie l'URL ou la connexion.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderItem = ({item}) => {
+    // Adaptation selon la structure retournée par ton backend/API-Football
+    const league = item.league?.name || item.league;
+    const home = item.teams?.home?.name || (item.homeTeam && item.homeTeam.team_name) || "Home";
+    const away = item.teams?.away?.name || (item.awayTeam && item.awayTeam.team_name) || "Away";
+    const date = item.fixture?.date || item.event_date || item.date || "Date inconnue";
+
+    return (
+      <TouchableOpacity style={styles.card}>
+        <Text style={styles.title}>{league}</Text>
+        <Text style={styles.match}>{home}  vs  {away}</Text>
+        <Text style={styles.date}>Date: {date}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}><Text style={styles.headerText}>LKprediction — Prédictions (FR)</Text></View>
+      {loading ? <ActivityIndicator style={{marginTop:20}} size="large" /> :
+        errorMsg ? <View style={{padding:20}}><Text style={{color:'red'}}>{errorMsg}</Text></View> :
+        <FlatList data={matches} keyExtractor={(i,idx)=>String(idx)} renderItem={renderItem}
+          ListEmptyComponent={()=>(<View style={{padding:20}}><Text>Aucun match trouvé aujourd'hui.</Text></View>)} />
+      }
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {flex:1, backgroundColor:'#fff'},
+  header: {padding:12, backgroundColor:'#0a58ca'},
+  headerText: {color:'#fff', fontSize:18},
+  card: {padding:12, borderBottomWidth:1, borderColor:'#eee'},
+  title: {fontWeight:'700'},
+  match: {fontSize:16, marginTop:6},
+  date: {color:'#666', marginTop:4}
+});---
 title: app.json / app.config.js
 description: A reference of available properties in Expo app config.
 maxHeadingDepth: 5
